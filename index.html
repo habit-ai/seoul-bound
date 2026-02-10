@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seoul Bound — Trip Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700;900&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@300;400;500;600&family=Sora:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f4f0e8;--card:#fffdf7;--border:#d4c9b5;--bl:#e6ddd0;--text:#2c2820;--tm:#5c554a;--td:#9a9082;--red:#c4503a;--blue:#4a7b94;--teal:#5a9e8f;--must:#c49a3c;--blush:#d4887a;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;}
+
+.dash{max-width:960px;margin:0 auto;padding:40px 24px 80px;position:relative;z-index:1;}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--text);color:var(--bg);font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:1px;padding:10px 24px;border-radius:4px;z-index:999;transition:transform .3s ease;pointer-events:none;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+
+/* Header */
+.hdr{text-align:center;margin-bottom:48px;padding-bottom:36px;border-bottom:2px solid var(--text);}
+.hdr-top{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:5px;text-transform:uppercase;color:var(--td);margin-bottom:16px;}
+.hdr h1{font-family:'Libre Baskerville',serif;font-size:clamp(36px,7vw,60px);font-weight:700;line-height:1.05;letter-spacing:-1px;margin-bottom:4px;}
+.hdr-kr{font-family:'Noto Sans KR',sans-serif;font-size:16px;font-weight:300;color:var(--red);letter-spacing:6px;margin-bottom:14px;}
+.hdr-sub{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--td);letter-spacing:1px;}
+.hdr-sub span{color:var(--tm);font-weight:500;}
+.orn{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:18px;}
+.orn-l{width:50px;height:1px;background:var(--border);}
+.orn-d{width:7px;height:7px;background:var(--red);transform:rotate(45deg);}
+
+/* Clock bar */
+.clock-bar{display:flex;justify-content:center;gap:32px;margin-bottom:32px;padding:14px 0;border:1.5px solid var(--border);border-radius:4px;background:var(--card);flex-wrap:wrap;}
+.clock-item{text-align:center;min-width:140px;}
+.clock-city{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--td);margin-bottom:4px;}
+.clock-time{font-family:'Libre Baskerville',serif;font-size:24px;font-weight:700;}
+.clock-date{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--td);margin-top:2px;}
+
+/* Grid */
+.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;}
+
+/* Card */
+.card{background:var(--card);border:1.5px solid var(--border);border-radius:4px;padding:24px;transition:box-shadow .3s;}
+.card:hover{box-shadow:0 4px 16px rgba(44,40,32,.08);}
+.cl{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--td);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--bl);display:flex;align-items:center;gap:8px;}
+.cl .n{font-weight:600;color:var(--tm);min-width:20px;}
+
+/* Copyable */
+.copyable{cursor:pointer;position:relative;display:inline-flex;align-items:center;gap:4px;padding:2px 6px;margin:-2px -6px;border-radius:3px;transition:background .2s;}
+.copyable:hover{background:rgba(196,80,58,.08);}
+.copyable::after{content:'⧉';font-size:10px;color:var(--td);opacity:0;transition:opacity .2s;}
+.copyable:hover::after{opacity:1;}
+
+/* Tel link */
+a.tel{color:inherit;text-decoration:none;border-bottom:1px dotted var(--border);transition:border-color .2s;}
+a.tel:hover{border-color:var(--red);}
+
+/* Map link */
+a.maplink{color:var(--red);text-decoration:none;font-weight:500;border-bottom:1px solid var(--red);transition:opacity .2s;font-size:10px;letter-spacing:1px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;}
+a.maplink:hover{opacity:.7;}
+
+/* Countdown */
+.c-cd{grid-column:span 6;text-align:center;padding:32px 24px;border-width:2px;}
+.cd-grid{display:flex;justify-content:center;margin:8px 0 16px;}
+.cd-u{width:110px;padding:12px 0;}
+.cd-u+.cd-u{border-left:1px solid var(--bl);}
+.cd-num{font-family:'Libre Baskerville',serif;font-size:clamp(40px,6vw,52px);font-weight:700;line-height:1;margin-bottom:4px;}
+.cd-num.d{color:var(--red);}.cd-num.h{color:var(--blue);}.cd-num.m{color:var(--teal);}.cd-num.s{color:var(--must);}
+.cd-lbl{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--td);}
+.cd-sub{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--td);}
+.cd-sub strong{color:var(--text);}
+
+/* Flight */
+.c-fl{grid-column:span 6;padding:24px;}
+.fl-tabs{display:flex;gap:0;margin-bottom:20px;border:1.5px solid var(--border);border-radius:4px;overflow:hidden;}
+.fl-tab{flex:1;padding:10px 16px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s;background:transparent;border:none;color:var(--td);}
+.fl-tab.active{background:var(--text);color:var(--bg);}
+.fl-tab:not(.active):hover{background:var(--bl);}
+.fl-content{display:none;}
+.fl-content.active{display:block;}
+.fl-legs{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.fl-leg{border:1px solid var(--bl);border-radius:4px;padding:20px;}
+.fl-leg-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--bl);}
+.fl-leg-route{font-family:'Libre Baskerville',serif;font-size:20px;font-weight:700;}
+.fl-leg-type{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--td);}
+.fl-leg-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;}
+.fl-lg-item{}
+.fl-lg-l{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--td);margin-bottom:2px;}
+.fl-lg-v{font-size:12px;font-weight:600;line-height:1.4;}
+.fl-pnr-bar{margin-top:16px;padding:12px 16px;background:var(--bg);border-radius:4px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+.fl-pnr-item{display:flex;flex-direction:column;gap:2px;}
+.fl-pnr-l{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--td);}
+.fl-pnr-v{font-size:13px;font-weight:600;}
+
+/* Hotels */
+.c-htls{grid-column:span 6;display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.htl{background:var(--card);border:1.5px solid var(--border);border-radius:4px;overflow:hidden;transition:box-shadow .3s;}
+.htl:hover{box-shadow:0 4px 16px rgba(44,40,32,.08);}
+.htl-bar{height:6px;}
+.htl:nth-child(1) .htl-bar{background:var(--blush);}
+.htl:nth-child(2) .htl-bar{background:var(--blue);}
+.htl:nth-child(3) .htl-bar{background:var(--teal);}
+.htl-in{padding:20px;}
+.htl-seq{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--td);margin-bottom:10px;}
+.htl-name{font-family:'Libre Baskerville',serif;font-size:15px;font-weight:700;line-height:1.3;margin-bottom:3px;}
+.htl-loc{font-size:11px;color:var(--td);margin-bottom:12px;}
+.htl-dates{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-family:'IBM Plex Mono',monospace;font-size:12px;}
+.htl-dv{font-weight:600;}
+.htl-arr{color:var(--td);font-size:10px;}
+.htl-nts{font-size:9px;padding:2px 7px;border-radius:2px;background:var(--bg);color:var(--tm);border:1px solid var(--bl);}
+.htl-meta{font-size:10px;color:var(--td);line-height:2.2;font-family:'IBM Plex Mono',monospace;}
+.htl-meta strong{color:var(--tm);font-weight:500;}
+.htl-addr{margin-top:10px;padding-top:10px;border-top:1px solid var(--bl);}
+.htl-addr-text{font-size:10px;color:var(--tm);line-height:1.5;margin-bottom:8px;font-family:'IBM Plex Mono',monospace;}
+.htl-actions{display:flex;gap:6px;flex-wrap:wrap;}
+.htl-btn{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;text-decoration:none;cursor:pointer;transition:all .2s;border:1px solid var(--border);}
+.htl-btn.map{background:var(--red);color:#fff;border-color:var(--red);}
+.htl-btn.map:hover{opacity:.85;}
+.htl-btn.copy{background:transparent;color:var(--tm);}
+.htl-btn.copy:hover{background:var(--bl);}
+.htl-btn.call{background:transparent;color:var(--tm);}
+.htl-btn.call:hover{background:var(--bl);}
+
+/* Timeline */
+.c-tl{grid-column:span 6;padding:24px;}
+.tl{display:flex;position:relative;margin-top:8px;}
+.tl::before{content:'';position:absolute;top:10px;left:0;right:0;height:2px;background:var(--border);}
+.tl-i{flex:1;text-align:center;position:relative;padding-top:32px;}
+.tl-dot{width:10px;height:10px;border-radius:50%;border:2px solid var(--card);position:absolute;top:6px;left:50%;transform:translateX(-50%);z-index:2;}
+.tl-date{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;margin-bottom:4px;}
+.tl-ev{font-size:10px;color:var(--td);line-height:1.5;}
+
+/* Currency */
+.c-cur{grid-column:span 3;padding:24px;}
+.cur-calc{display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap;}
+.cur-input-wrap{flex:1;min-width:120px;}
+.cur-input-label{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--td);margin-bottom:4px;}
+.cur-input{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;background:var(--bg);color:var(--text);outline:none;transition:border-color .2s;}
+.cur-input:focus{border-color:var(--red);}
+.cur-arrow{font-size:18px;color:var(--td);padding-top:16px;cursor:pointer;transition:transform .2s;user-select:none;}
+.cur-arrow:hover{transform:scaleX(-1);}
+.cur-rate{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--td);margin-bottom:16px;}
+.cur-quick{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.cur-q{background:var(--bg);border:1px solid var(--bl);border-radius:3px;padding:8px;text-align:center;}
+.cur-q-sek{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--tm);}
+.cur-q-krw{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--td);}
+.cur-q-ex{font-size:9px;color:var(--td);font-style:italic;margin-top:2px;}
+
+/* Weather */
+.c-wx{grid-column:span 3;}
+.wx-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.wx-city{background:var(--bg);border:1px solid var(--bl);border-radius:4px;padding:16px;text-align:center;}
+.wx-city-name{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--td);margin-bottom:8px;}
+.wx-icon{font-size:32px;margin-bottom:4px;}
+.wx-temp{font-family:'Libre Baskerville',serif;font-size:28px;font-weight:700;}
+.wx-desc{font-size:10px;color:var(--td);margin-top:4px;line-height:1.4;}
+.wx-details{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--td);margin-top:8px;line-height:1.8;}
+.wx-note{grid-column:span 2;font-size:10px;color:var(--td);font-style:italic;text-align:center;margin-top:4px;line-height:1.5;padding:8px;background:var(--bg);border-radius:3px;}
+
+/* Checklist */
+.c-chk{grid-column:span 2;}
+.chk{list-style:none;}
+.chk-cat{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--td);margin-top:12px;margin-bottom:4px;padding-top:8px;border-top:1px solid var(--bl);}
+.chk-cat:first-child{margin-top:0;padding-top:0;border-top:none;}
+.chk li{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:11px;cursor:pointer;transition:opacity .2s;user-select:none;color:var(--tm);}
+.chk li.ck{opacity:.3;text-decoration:line-through;}
+.cb{width:16px;height:16px;border-radius:2px;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;font-size:9px;color:transparent;}
+.chk li.ck .cb{background:var(--teal);border-color:var(--teal);color:#fff;}
+
+/* Phrases */
+.c-phr{grid-column:span 2;}
+.ph{padding:8px 0;border-bottom:1px solid var(--bl);}
+.ph:last-child{border-bottom:none;}
+.ph-kr{font-family:'Noto Sans KR',sans-serif;font-size:15px;font-weight:700;color:var(--red);margin-bottom:1px;}
+.ph-rm{font-family:'Libre Baskerville',serif;font-size:10px;font-style:italic;color:var(--td);}
+.ph-en{font-size:11px;color:var(--tm);margin-top:2px;font-weight:500;}
+
+/* Word + Progress combined */
+.c-word-prog{grid-column:span 2;display:flex;flex-direction:column;gap:14px;}
+.word-box{background:var(--red);border:1.5px solid var(--red);border-radius:4px;color:#fffdf7;text-align:center;padding:24px 20px;flex:1;display:flex;flex-direction:column;justify-content:center;}
+.word-box .cl{color:rgba(255,253,247,.5);border-bottom-color:rgba(255,253,247,.15);justify-content:center;}
+.word-box .cl .n{color:rgba(255,253,247,.6);}
+.w-kr{font-family:'Noto Sans KR',sans-serif;font-size:34px;font-weight:900;margin-bottom:4px;line-height:1.2;}
+.w-rm{font-family:'Libre Baskerville',serif;font-size:13px;font-style:italic;opacity:.7;margin-bottom:10px;}
+.w-en{font-size:14px;font-weight:600;margin-bottom:3px;}
+.w-ex{font-size:9px;opacity:.5;line-height:1.5;font-style:italic;}
+.w-nav{display:flex;justify-content:center;gap:6px;margin-top:12px;}
+.w-nav button{background:rgba(255,253,247,.15);border:1px solid rgba(255,253,247,.2);color:#fffdf7;width:28px;height:28px;border-radius:3px;cursor:pointer;font-size:13px;transition:all .2s;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;}
+.w-nav button:hover{background:rgba(255,253,247,.25);}
+
+.prog-box{background:var(--card);border:1.5px solid var(--border);border-radius:4px;padding:20px;text-align:center;}
+.pr-pct{font-family:'Libre Baskerville',serif;font-size:36px;font-weight:700;color:var(--teal);line-height:1;margin-bottom:4px;}
+.pr-sub{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--td);text-transform:uppercase;margin-bottom:10px;}
+.pr-bg{width:100%;height:6px;background:var(--bl);border-radius:1px;overflow:hidden;}
+.pr-fill{height:100%;background:var(--teal);transition:width .5s;border-radius:1px;}
+
+/* Emergency & Links */
+.c-info{grid-column:span 3;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.info-box{background:var(--card);border:1.5px solid var(--border);border-radius:4px;padding:20px;}
+.info-title{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--td);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--bl);}
+.info-item{padding:6px 0;font-size:11px;color:var(--tm);display:flex;align-items:center;gap:8px;}
+.info-item a{color:var(--red);text-decoration:none;font-weight:600;}
+.info-item a:hover{text-decoration:underline;}
+.info-num{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:13px;color:var(--text);min-width:40px;}
+
+/* Quick links */
+.link-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bl);font-size:11px;}
+.link-item:last-child{border-bottom:none;}
+.link-item a{color:var(--red);text-decoration:none;font-weight:500;}
+.link-item a:hover{text-decoration:underline;}
+.link-ico{font-size:14px;width:20px;text-align:center;}
+
+/* Quick links card */
+.c-links{grid-column:span 3;}
+
+/* Footer */
+.ftr{text-align:center;margin-top:48px;padding-top:24px;border-top:2px solid var(--text);}
+.ftr-kr{font-family:'Noto Sans KR',sans-serif;font-size:14px;color:var(--td);font-weight:300;letter-spacing:4px;}
+.ftr-txt{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--td);margin-top:6px;}
+
+/* Animations */
+@keyframes su{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.card,.htl,.word-box,.prog-box,.info-box{animation:su .5s ease backwards;}
+
+
+/* Flight Banners */
+.fl-banner{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;text-align:center;padding:7px 10px;border-radius:3px;line-height:1.4;}
+.fl-banner-lay{color:var(--must);background:var(--bg);border:1px solid var(--bl);}
+.fl-banner-arr{color:var(--teal);background:rgba(90,158,143,.06);border:1px solid rgba(90,158,143,.2);}
+
+/* Span helpers (replacements for inline styles) */
+.c-span3{grid-column:span 3;}
+.c-emrg{grid-column:span 2;}
+.c-ulinks{grid-column:span 2;}
+
+/* Cultural Canon */
+.c-canon{grid-column:span 6;max-width:960px;width:100%;}
+.canon-cats{display:flex;gap:0;margin-bottom:24px;border:1.5px solid var(--border);border-radius:4px;overflow:hidden;flex-wrap:wrap;}
+.canon-cat{flex:1;min-width:70px;padding:10px 8px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s;background:transparent;border:none;color:var(--td);}
+.canon-cat.active{background:var(--text);color:var(--bg);}
+.canon-cat:not(.active):hover{background:var(--bl);}
+.canon-items{display:none;}
+.canon-items.active{display:flex;flex-direction:column;gap:0;}
+.canon-item{display:grid;grid-template-columns:100px 1fr;gap:0;border-bottom:1px solid var(--bl);padding:16px 0;align-items:start;}
+.canon-item:last-child{border-bottom:none;}
+.canon-item:first-child{padding-top:0;}
+.canon-left{padding-right:16px;border-right:1px solid var(--bl);}
+.canon-yr{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--td);line-height:1.5;}
+.canon-tags{display:flex;flex-direction:column;gap:3px;margin-top:6px;}
+.canon-tag{font-family:'IBM Plex Mono',monospace;font-size:7px;letter-spacing:1px;padding:2px 5px;border-radius:2px;background:var(--bg);color:var(--td);border:1px solid var(--bl);text-align:center;}
+.canon-right{padding-left:16px;}
+.canon-title{font-family:'Libre Baskerville',serif;font-size:14px;font-weight:700;line-height:1.3;margin-bottom:1px;}
+.canon-kr{font-family:'Noto Sans KR',sans-serif;font-size:11px;color:var(--red);font-weight:400;margin-bottom:6px;}
+.canon-desc{font-size:11px;color:var(--tm);line-height:1.65;}
+.canon-link{display:inline-block;margin-top:6px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--red);text-decoration:none;letter-spacing:1px;border-bottom:1px solid transparent;transition:border-color .2s;}
+.canon-link:hover{border-bottom-color:var(--red);}
+
+/* ===== RESPONSIVE: TABLET (768px) ===== */
+@media(max-width:768px){
+  .grid{grid-template-columns:repeat(2,1fr);}
+  .c-cd,.c-fl,.c-tl,.c-htls,.c-cur,.c-wx{grid-column:span 2!important;}
+  .c-chk{grid-column:span 1!important;}
+  .c-phr{grid-column:span 1!important;}
+  .c-span3{grid-column:span 2!important;}
+  .c-emrg{grid-column:span 1!important;}
+  .c-ulinks{grid-column:span 1!important;}
+  .word-box{grid-column:span 2!important;}
+  .c-htls{grid-template-columns:1fr;}
+  .fl-legs{grid-template-columns:1fr;}
+  .cd-num{font-size:36px;}
+  .cd-u{width:auto;flex:1;}
+  .wx-grid{grid-template-columns:1fr;}
+  .wx-note{grid-column:span 1;}
+  .clock-bar{gap:20px;padding:12px 16px;}
+  .c-canon{grid-column:span 2!important;}
+  .canon-item{grid-template-columns:80px 1fr;}
+}
+
+/* ===== RESPONSIVE: MOBILE (480px) ===== */
+@media(max-width:480px){
+  /* Base layout */
+  .dash{padding:20px 12px 48px;}
+  .grid{grid-template-columns:1fr;gap:10px;}
+  .grid>*{grid-column:span 1!important;}
+  .c-htls{grid-template-columns:1fr;}
+  .fl-legs{grid-template-columns:1fr;}
+
+  /* Header */
+  .hdr{margin-bottom:28px;padding-bottom:24px;}
+  .hdr-top{font-size:9px;letter-spacing:3px;margin-bottom:10px;}
+  .hdr-kr{font-size:14px;letter-spacing:4px;}
+  .hdr-sub{font-size:10px;}
+
+  /* Clock bar */
+  .clock-bar{gap:12px;padding:10px 12px;margin-bottom:20px;flex-direction:row;justify-content:space-around;}
+  .clock-item{min-width:auto;flex:1;}
+  .clock-time{font-size:18px;}
+  .clock-city{font-size:8px;letter-spacing:2px;}
+  .clock-date{font-size:9px;}
+
+  /* Cards */
+  .card{padding:18px 14px;}
+  .cl{font-size:8px;letter-spacing:2px;margin-bottom:12px;padding-bottom:8px;}
+
+  /* Countdown */
+  .c-cd{padding:20px 14px;}
+  .cd-num{font-size:32px;}
+  .cd-lbl{font-size:8px;letter-spacing:2px;}
+  .cd-sub{font-size:10px;}
+  .cd-u{width:auto;flex:1;padding:8px 0;}
+
+  /* Flights */
+  .c-fl{padding:18px 14px;}
+  .fl-tab{padding:10px 8px;font-size:9px;letter-spacing:1px;}
+  .fl-leg{padding:14px 12px;}
+  .fl-leg-hdr{flex-direction:column;align-items:flex-start;gap:4px;}
+  .fl-leg-route{font-size:18px;}
+  .fl-leg-grid{grid-template-columns:1fr;gap:6px;}
+  .fl-pnr-bar{flex-direction:column;align-items:flex-start;gap:10px;padding:10px 12px;}
+  .fl-banner{font-size:8px;letter-spacing:1px;padding:6px 8px;}
+
+  /* Hotels */
+  .htl-in{padding:14px;}
+  .htl-name{font-size:14px;}
+  .htl-dates{flex-wrap:wrap;}
+  .htl-actions{flex-direction:column;gap:4px;}
+  .htl-btn{justify-content:center;width:100%;padding:8px 12px;}
+
+  /* Timeline — vertical on mobile */
+  .c-tl{padding:18px 14px;}
+  .tl{flex-direction:column;gap:0;padding-left:20px;}
+  .tl::before{top:0;bottom:0;left:4px;right:auto;width:2px;height:auto;}
+  .tl-i{text-align:left;padding:0 0 16px 0;position:relative;}
+  .tl-i:last-child{padding-bottom:0;}
+  .tl-dot{left:-20px;top:2px;transform:none;}
+  .tl-date{font-size:12px;}
+  .tl-ev{font-size:11px;}
+
+  /* Currency */
+  .cur-calc{flex-direction:column;align-items:stretch;gap:8px;}
+  .cur-arrow{padding-top:0;text-align:center;font-size:16px;}
+  .cur-input{font-size:16px;padding:12px;}
+  .cur-quick{grid-template-columns:repeat(2,1fr);gap:6px;}
+  .cur-q{padding:10px 6px;}
+
+  /* Weather */
+  .wx-grid{grid-template-columns:1fr 1fr;gap:8px;}
+  .wx-city{padding:12px 8px;}
+  .wx-temp{font-size:24px;}
+  .wx-note{grid-column:span 2;font-size:9px;}
+
+  /* Phrases */
+  .ph-kr{font-size:16px;}
+  .ph-rm{font-size:11px;}
+  .ph-en{font-size:12px;}
+
+  /* Word of the day */
+  .word-box{padding:20px 14px;}
+  .w-kr{font-size:28px;}
+  .w-rm{font-size:12px;}
+  .w-en{font-size:13px;}
+  .w-nav button{width:36px;height:36px;font-size:15px;}
+
+  /* Checklist */
+  .chk li{padding:8px 0;font-size:12px;}
+  .cb{width:18px;height:18px;}
+
+  /* Emergency & Links — full width touch targets */
+  .info-item{padding:8px 0;font-size:12px;}
+  .info-num{font-size:14px;min-width:44px;}
+  .link-item{padding:10px 0;font-size:12px;}
+  .link-ico{font-size:16px;}
+
+  /* Canon */
+  .c-canon{padding:18px 14px;}
+  .canon-cats{border-radius:4px;}
+  .canon-cat{min-width:0;padding:10px 4px;font-size:8px;letter-spacing:0.5px;flex:1 1 calc(33.33% - 0px);}
+  .canon-item{grid-template-columns:1fr;gap:6px;padding:14px 0;}
+  .canon-left{border-right:none;padding-right:0;padding-bottom:2px;display:flex;flex-direction:row;align-items:center;gap:6px;}
+  .canon-right{padding-left:0;}
+  .canon-tags{flex-direction:row;flex-wrap:wrap;margin-top:0;}
+  .canon-title{font-size:14px;}
+  .canon-desc{font-size:11px;line-height:1.7;}
+  .canon-link{padding:4px 0;font-size:10px;}
+
+  /* Footer */
+  .ftr{margin-top:32px;padding-top:18px;}
+  .ftr-kr{font-size:12px;letter-spacing:3px;}
+}
+</style>
+</head>
+<body>
+
+<div id="toast" class="toast">Copied!</div>
+
+<div class="dash">
+
+  <!-- HEADER -->
+  <header class="hdr">
+    <div class="hdr-top">Travel Dashboard — No. 001</div>
+    <h1>Seoul Bound</h1>
+    <div class="hdr-kr">서울로 가는 길</div>
+    <div class="hdr-sub">Prepared for <span>Samuel Salzer</span> · March 3–13, 2026 · Stockholm → South Korea</div>
+    <div class="orn"><div class="orn-l"></div><div class="orn-d"></div><div class="orn-l"></div></div>
+  </header>
+
+  <div class="grid">
+
+    <!-- COUNTDOWN -->
+    <div class="card c-cd">
+      <div class="cl"><span class="n">01</span> Countdown to Departure</div>
+      <div class="cd-grid">
+        <div class="cd-u"><div class="cd-num d" id="days">--</div><div class="cd-lbl">Days</div></div>
+        <div class="cd-u"><div class="cd-num h" id="hours">--</div><div class="cd-lbl">Hours</div></div>
+        <div class="cd-u"><div class="cd-num m" id="mins">--</div><div class="cd-lbl">Minutes</div></div>
+        <div class="cd-u"><div class="cd-num s" id="secs">--</div><div class="cd-lbl">Seconds</div></div>
+      </div>
+      <div class="cd-sub">Departing <strong>March 3, 2026</strong> — ARN → CPH → ICN</div>
+    </div>
+
+    <!-- FLIGHTS -->
+    <div class="card c-fl">
+      <div class="cl"><span class="n">02</span> Flights — SAS Scandinavian Airlines · Flex</div>
+      <div class="fl-tabs">
+        <button class="fl-tab active" onclick="showFlight('out',this)">✈ Outbound · Tue 3 Mar</button>
+        <button class="fl-tab" onclick="showFlight('ret',this)">✈ Return · Fri 13 Mar</button>
+      </div>
+
+      <!-- Outbound: 21:00 – 19:00+1 -->
+      <div class="fl-content active" id="fl-out">
+        <div class="fl-legs">
+          <div class="fl-leg">
+            <div class="fl-banner fl-banner-arr">🛫 Arrive at ARN by 19:00 — 2h before departure</div>
+            <div class="fl-leg-hdr">
+              <div class="fl-leg-route">ARN → CPH</div>
+              <div class="fl-leg-type">SK 1427 · SAS Connect</div>
+            </div>
+            <div class="fl-leg-grid">
+              <div class="fl-lg-item"><div class="fl-lg-l">Departure</div><div class="fl-lg-v">21:00 · ARN Terminal 5</div></div>
+              <div class="fl-lg-item"><div class="fl-lg-l">Arrival</div><div class="fl-lg-v">22:15 · CPH Terminal 3</div></div>
+              <div class="fl-lg-item"><div class="fl-lg-l">Duration</div><div class="fl-lg-v">1h 15m</div></div>
+              <div class="fl-lg-item"><div class="fl-lg-l">Seat</div><div class="fl-lg-v">11F</div></div>
+              <div class="fl-lg-item"><div class="fl-lg-l">Lounge</div><div class="fl-lg-v">✓ Lounge access for 1</div></div>
+            </div>
+          </div>
+          <div class="fl-leg" style="position:relative;">
+            <div class="fl-banner fl-banner-lay">⏱ 1h 05m layover · Copenhagen</div>
+            <div class="fl-leg-hdr">
+              <div class="fl-leg-route">CPH → ICN</div>
+              <div class="fl-leg-type">SK 987 · SAS</div>
+            </div>
+            <div class="fl-leg-grid">
+              <div class="fl-lg-item"><div class="fl-lg-l">Departure</div><div class="fl-lg-v">23:20 · CPH Terminal 3</div></div>
+              <div class="fl-lg-item"><div class="fl-lg-l">Arrival</div><div class="fl-lg-v">19:00+1 · ICN Terminal 2</div></div>
+              <div class="fl-lg-item"><div class="fl-lg-l">Duration</div><div class="fl-lg-v">11h 40m</div></div>
+              <div class="fl-lg-item"><div class="fl-lg-l">Seat</div><div class="fl-lg-v">30C</div></div>
+              <div class="fl-lg-item"><div class="fl-lg-l">Meal</div><div class="fl-lg-v">1 meal included</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Return: 23:45 – 09:15+1 -->
+      <div class="fl-content" id="fl-ret">
+        <div class="fl-legs">
+          <div class="fl-leg">
+            <div class="fl-banner fl-banner-arr">🛫 Arrive at ICN by 21:45 — 2h before departure</div>
+            <div class="fl-leg-hdr">
+              <div class="fl-leg-route">ICN → CPH</div>
+              <div class="fl-leg-type">SK 988 · SAS</div>
+            </div>
+            <div class="fl-leg-grid">
+              <div class="fl-lg-item"><div class="fl-lg-l">Departure</div><div class="fl-lg-v">23:45 · ICN Terminal 2</div></div>
+              <div class="fl-lg-item"><div class="fl-lg-l">Arrival</div><div class="fl-lg-v">05:25+1 · CPH Terminal 3</div></div>
+              <div class="fl-lg-item"><div class="fl-lg-l">Duration</div><div class="fl-lg-v">13h 40m</div></div>
+              <div class="fl-lg-item"><div class="fl-lg-l">Seat</div><div class="fl-lg-v">40C</div></div>
+              <div class="fl-lg-item"><div class="fl-lg-l">Meal</div><div class="fl-lg-v">1 meal included</div></div>
+              <div class="fl-lg-item"><div class="fl-lg-l">Lounge</div><div class="fl-lg-v">✓ Lounge access for 1</div></div>
+            </div>
+          </div>
+          <div class="fl-leg">
+            <div class="fl-banner fl-banner-lay">⏱ 2h 35m layover · Copenhagen</div>
+            <div class="fl-leg-hdr">
+              <div class="fl-leg-route">CPH → ARN</div>
+              <div class="fl-leg-type">SK 1416 · SAS</div>
+            </div>
+            <div class="fl-leg-grid">
+              <div class="fl-lg-item"><div class="fl-lg-l">Departure</div><div class="fl-lg-v">08:00 · CPH Terminal 3</div></div>
+              <div class="fl-lg-item"><div class="fl-lg-l">Arrival</div><div class="fl-lg-v">09:15 · ARN Terminal 5</div></div>
+              <div class="fl-lg-item"><div class="fl-lg-l">Duration</div><div class="fl-lg-v">1h 15m</div></div>
+              <div class="fl-lg-item"><div class="fl-lg-l">Seat</div><div class="fl-lg-v">11A</div></div>
+              <div class="fl-lg-item"><div class="fl-lg-l">Meal</div><div class="fl-lg-v">1 meal included</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="fl-pnr-bar">
+        <div class="fl-pnr-item"><div class="fl-pnr-l">PNR / Booking Ref</div><div class="fl-pnr-v">••••••</div></div>
+        <div class="fl-pnr-item"><div class="fl-pnr-l">Passenger</div><div class="fl-pnr-v">Samuel Salzer</div></div>
+        <div class="fl-pnr-item"><div class="fl-pnr-l">Fare</div><div class="fl-pnr-v">SAS Flex</div></div>
+      </div>
+    </div>
+
+    <!-- HOTELS -->
+    <div class="c-htls">
+      <div class="htl">
+        <div class="htl-bar"></div>
+        <div class="htl-in">
+          <div class="htl-seq">Stay 01 — Arrival Night</div>
+          <div class="htl-name">Nest Hotel Incheon</div>
+          <div class="htl-loc">Jung-gu, Incheon</div>
+          <div class="htl-dates"><span class="htl-dv">Mar 4</span><span class="htl-arr">→</span><span class="htl-dv">Mar 5</span><span class="htl-nts">1 night</span></div>
+          <div class="htl-meta">
+            <strong>Conf:</strong> ••••••••••<br>
+            <strong>Tel:</strong> <a href="tel:+82327439000" class="tel">+82 32-743-9000</a>
+          </div>
+          <div class="htl-addr">
+            <div class="htl-addr-text">19-5, Yeongjonghaeannam-ro, Jung-gu, Jung-gu, 22382 Incheon, South Korea</div>
+            <div class="htl-actions">
+              <a href="https://maps.google.com/?q=Nest+Hotel+Incheon+19-5+Yeongjonghaeannam-ro+Jung-gu+Incheon" target="_blank" class="htl-btn map">📍 Maps</a>
+              <button class="htl-btn copy" onclick="cp('19-5, Yeongjonghaeannam-ro, Jung-gu, Jung-gu, 22382 Incheon')">📋 Copy Address</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="htl">
+        <div class="htl-bar"></div>
+        <div class="htl-in">
+          <div class="htl-seq">Stay 02 — Pohang</div>
+          <div class="htl-name">Lahan Hotel Pohang</div>
+          <div class="htl-loc">Buk-gu, Pohang · Corner Suite, Sea View</div>
+          <div class="htl-dates"><span class="htl-dv">Mar 5</span><span class="htl-arr">→</span><span class="htl-dv">Mar 7</span><span class="htl-nts">2 nights</span></div>
+          <div class="htl-meta">
+            <strong>Conf:</strong> ••••••••••<br>
+            <strong>Tel:</strong> <a href="tel:+8216448005" class="tel">+82 1644-8005</a>
+          </div>
+          <div class="htl-addr">
+            <div class="htl-addr-text">1, Samho-ro 265beon-gil, Buk-gu, 37625 Pohang, South Korea</div>
+            <div class="htl-actions">
+              <a href="https://maps.google.com/?q=Lahan+Hotel+Pohang+1+Samho-ro+265beon-gil+Buk-gu+Pohang" target="_blank" class="htl-btn map">📍 Maps</a>
+              <button class="htl-btn copy" onclick="cp('1, Samho-ro 265beon-gil, Buk-gu, 37625 Pohang')">📋 Copy Address</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="htl">
+        <div class="htl-bar"></div>
+        <div class="htl-in">
+          <div class="htl-seq">Stay 03 — Seoul</div>
+          <div class="htl-name">Stay Seoul Vibe</div>
+          <div class="htl-loc">Seongsu · Near Konkuk Univ</div>
+          <div class="htl-dates"><span class="htl-dv">Mar 7</span><span class="htl-arr">→</span><span class="htl-dv">Mar 13</span><span class="htl-nts">6 nights</span></div>
+          <div class="htl-meta">
+            <strong>Conf:</strong> ••••••••••<br>
+            <strong>Tel:</strong> <a href="tel:+821084342986" class="tel">+82 10-8434-2986</a>
+          </div>
+          <div class="htl-addr">
+            <div class="htl-addr-text">광진구 능동로 165-1, 05010 Seoul, South Korea</div>
+            <div class="htl-actions">
+              <a href="https://maps.google.com/?q=Stay+Seoul+Vibe+광진구+능동로+165-1+Seoul" target="_blank" class="htl-btn map">📍 Maps</a>
+              <button class="htl-btn copy" onclick="cp('광진구 능동로 165-1, 05010 Seoul')">📋 Copy Address</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TIMELINE -->
+    <div class="card c-tl">
+      <div class="cl"><span class="n">04</span> Trip Timeline</div>
+      <div class="tl">
+        <div class="tl-i"><div class="tl-dot" style="background:var(--red)"></div><div class="tl-date">Mar 3</div><div class="tl-ev">Depart ARN<br>21:00 → via CPH</div></div>
+        <div class="tl-i"><div class="tl-dot" style="background:var(--blush)"></div><div class="tl-date">Mar 4</div><div class="tl-ev">Arrive ICN 19:00<br>Nest Hotel</div></div>
+        <div class="tl-i"><div class="tl-dot" style="background:var(--blue)"></div><div class="tl-date">Mar 5–7</div><div class="tl-ev">Pohang<br>Lahan Hotel</div></div>
+        <div class="tl-i"><div class="tl-dot" style="background:var(--teal)"></div><div class="tl-date">Mar 7–13</div><div class="tl-ev">Seoul<br>Stay Seoul Vibe</div></div>
+        <div class="tl-i"><div class="tl-dot" style="background:var(--must)"></div><div class="tl-date">Mar 13</div><div class="tl-ev">Depart ICN 23:45<br>→ CPH → ARN</div></div>
+      </div>
+    </div>
+
+    <!-- CURRENCY CALCULATOR -->
+    <div class="card c-cur">
+      <div class="cl"><span class="n">05</span> Currency · SEK ↔ KRW</div>
+      <div class="cur-calc">
+        <div class="cur-input-wrap">
+          <div class="cur-input-label">Swedish Krona (SEK)</div>
+          <input type="number" class="cur-input" id="sekInput" placeholder="100" oninput="convertSEK()">
+        </div>
+        <div class="cur-arrow" onclick="swapCur()">⇄</div>
+        <div class="cur-input-wrap">
+          <div class="cur-input-label">Korean Won (₩)</div>
+          <input type="number" class="cur-input" id="krwInput" placeholder="16,000" oninput="convertKRW()">
+        </div>
+      </div>
+      <div class="cur-rate">Rate: 1 SEK ≈ 160 KRW · Updated Feb 2026</div>
+      <div class="cur-quick">
+        <div class="cur-q"><div class="cur-q-sek">50 kr</div><div class="cur-q-krw">≈ ₩8,000</div><div class="cur-q-ex">Snack</div></div>
+        <div class="cur-q"><div class="cur-q-sek">100 kr</div><div class="cur-q-krw">≈ ₩16,000</div><div class="cur-q-ex">Meal</div></div>
+        <div class="cur-q"><div class="cur-q-sek">200 kr</div><div class="cur-q-krw">≈ ₩32,000</div><div class="cur-q-ex">Nice dinner</div></div>
+        <div class="cur-q"><div class="cur-q-sek">500 kr</div><div class="cur-q-krw">≈ ₩80,000</div><div class="cur-q-ex">Day budget</div></div>
+        <div class="cur-q"><div class="cur-q-sek">1,000 kr</div><div class="cur-q-krw">≈ ₩160,000</div><div class="cur-q-ex">Big day out</div></div>
+        <div class="cur-q"><div class="cur-q-sek">5,000 kr</div><div class="cur-q-krw">≈ ₩800,000</div><div class="cur-q-ex">Weekly</div></div>
+      </div>
+    </div>
+
+    <!-- WEATHER -->
+    <div class="card c-wx">
+      <div class="cl"><span class="n">06</span> Weather Now</div>
+      <div class="wx-grid">
+        <div class="wx-city">
+          <div class="wx-city-name">Seoul</div>
+          <div class="wx-icon" id="wxIconSeoul">❄️</div>
+          <div class="wx-temp" id="wxTempSeoul">-7°C</div>
+          <div class="wx-desc" id="wxDescSeoul">Clear · Feels cold</div>
+          <div class="wx-details" id="wxDetSeoul">Humidity: 38% · Wind: 12 km/h</div>
+        </div>
+        <div class="wx-city">
+          <div class="wx-city-name">Pohang</div>
+          <div class="wx-icon" id="wxIconPohang">🌤️</div>
+          <div class="wx-temp" id="wxTempPohang">2°C</div>
+          <div class="wx-desc" id="wxDescPohang">Partly cloudy</div>
+          <div class="wx-details" id="wxDetPohang">Coastal · Milder than Seoul</div>
+        </div>
+        <div class="wx-note">
+          📅 <strong>Early March forecast:</strong> Seoul 0–8°C, Pohang 2–10°C. Pack warm layers, light jacket for afternoons. Dry season — rain unlikely.
+        </div>
+      </div>
+    </div>
+
+    <!-- PHRASES — span 3 -->
+    <div class="card c-phr c-span3">
+      <div class="cl"><span class="n">07</span> Survival Phrases</div>
+      <div class="ph"><div class="ph-kr">안녕하세요</div><div class="ph-rm">annyeonghaseyo</div><div class="ph-en">Hello (formal)</div></div>
+      <div class="ph"><div class="ph-kr">감사합니다</div><div class="ph-rm">gamsahamnida</div><div class="ph-en">Thank you</div></div>
+      <div class="ph"><div class="ph-kr">이것 주세요</div><div class="ph-rm">igeot juseyo</div><div class="ph-en">This one, please</div></div>
+      <div class="ph"><div class="ph-kr">얼마예요?</div><div class="ph-rm">eolmayeyo?</div><div class="ph-en">How much?</div></div>
+      <div class="ph"><div class="ph-kr">화장실 어디예요?</div><div class="ph-rm">hwajangsil eodiyeyo?</div><div class="ph-en">Where's the bathroom?</div></div>
+      <div class="ph"><div class="ph-kr">맛있어요!</div><div class="ph-rm">masisseoyo!</div><div class="ph-en">Delicious!</div></div>
+      <div class="ph"><div class="ph-kr">계산해 주세요</div><div class="ph-rm">gyesanhae juseyo</div><div class="ph-en">The bill, please</div></div>
+      <div class="ph"><div class="ph-kr">죄송합니다</div><div class="ph-rm">joesonghamnida</div><div class="ph-en">I'm sorry</div></div>
+      <div class="ph"><div class="ph-kr">여기요!</div><div class="ph-rm">yeogiyo!</div><div class="ph-en">Excuse me! (restaurant)</div></div>
+    </div>
+
+    <!-- DAILY WORD — span 3 -->
+    <div class="word-box c-span3">
+      <div class="cl"><span class="n">08</span> Daily Korean Word</div>
+      <div class="w-kr" id="wH">안녕하세요</div>
+      <div class="w-rm" id="wR">annyeonghaseyo</div>
+      <div class="w-en" id="wE">Hello</div>
+      <div class="w-ex" id="wX">"안녕하세요! 만나서 반갑습니다"</div>
+      <div class="w-nav"><button onclick="pw()">←</button><button onclick="nw()">→</button></div>
+    </div>
+
+    <!-- CHECKLIST — span 2 -->
+    <div class="card c-chk">
+      <div class="cl"><span class="n">09</span> Preparation</div>
+      <ul class="chk" id="chk"></ul>
+      <div style="margin-top:12px;">
+        <div class="pr-pct" id="pPct" style="font-family:'Libre Baskerville',serif;font-size:28px;font-weight:700;color:var(--teal);text-align:center;">0%</div>
+        <div class="pr-sub" id="pSub" style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--td);text-transform:uppercase;text-align:center;margin-bottom:8px;">0 of 12 complete</div>
+        <div class="pr-bg"><div class="pr-fill" id="pBar" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <!-- EMERGENCY — span 2 -->
+    <div class="card c-emrg">
+      <div class="cl"><span class="n">10</span> Emergency</div>
+      <div class="info-item"><span class="info-num">112</span> Police</div>
+      <div class="info-item"><span class="info-num">119</span> Fire / Ambulance</div>
+      <div class="info-item"><span class="info-num">1330</span> Tourist Hotline (English)</div>
+      <div class="info-item"><span class="info-num">1345</span> Immigration</div>
+      <div class="info-item" style="margin-top:8px;font-size:10px;color:var(--td);">🇸🇪 Swedish Embassy Seoul:<br><a href="tel:+8227397370" class="tel" style="color:var(--red)">+82 2-739-7370</a></div>
+    </div>
+
+    <!-- USEFUL LINKS — span 2 -->
+    <div class="card c-ulinks">
+      <div class="cl"><span class="n">11</span> Useful Links</div>
+      <div class="link-item"><span class="link-ico">🚕</span><a href="https://apps.apple.com/app/kakao-t/id981110422" target="_blank">Kakao T</a> — Taxi app</div>
+      <div class="link-item"><span class="link-ico">🗺️</span><a href="https://apps.apple.com/app/naver-map-navigation/id311867728" target="_blank">Naver Maps</a> — Navigation</div>
+      <div class="link-item"><span class="link-ico">🌐</span><a href="https://translate.google.com/?sl=auto&tl=ko" target="_blank">Google Translate</a></div>
+      <div class="link-item"><span class="link-ico">🚇</span><a href="https://apps.apple.com/app/subway-korea/id325924444" target="_blank">Subway Korea</a> — Metro app</div>
+      <div class="link-item"><span class="link-ico">🔌</span>Plug: Type C/F — Same as 🇸🇪!</div>
+      <div class="link-item"><span class="link-ico">📱</span><a href="https://www.klook.com/activity/16395-4g-sim-card-incheon-international-airport/" target="_blank">SIM at ICN</a></div>
+    </div>
+
+    </div>
+
+    <!-- CULTURAL CANON -->
+    <div class="card c-canon">
+      <div class="cl"><span class="n">12</span> Korean Cultural Canon · 한국 문화</div>
+      <div class="canon-cats">
+        <button class="canon-cat active" onclick="showCanon('film',this)">🎬 Film</button>
+        <button class="canon-cat" onclick="showCanon('tv',this)">📺 TV</button>
+        <button class="canon-cat" onclick="showCanon('music',this)">🎵 Music</button>
+        <button class="canon-cat" onclick="showCanon('lit',this)">📖 Literature</button>
+        <button class="canon-cat" onclick="showCanon('food',this)">🍜 Food</button>
+        <button class="canon-cat" onclick="showCanon('hist',this)">🏛 History</button>
+      </div>
+
+      <div class="canon-items active" id="canon-film">
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">2014</div><div class="canon-tags"><span class="canon-tag">#1 Domestic</span></div></div>
+          <div class="canon-right"><div class="canon-title">The Admiral: Roaring Currents</div><div class="canon-kr">명량 · Kim Han-min</div><div class="canon-desc">Korea's highest-grossing domestic film ever — 17.6 million admissions, meaning roughly 1 in 3 Koreans saw it. Epic retelling of Admiral Yi Sun-sin's legendary naval victory at Myeongnyang. Choi Min-sik is extraordinary in the lead. Not widely known abroad, but a national event in Korea.</div><a href="https://en.wikipedia.org/wiki/The_Admiral:_Roaring_Currents" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">2001</div><div class="canon-tags"><span class="canon-tag">Gangster</span><span class="canon-tag">Iconic</span></div></div>
+          <div class="canon-right"><div class="canon-title">Friend</div><div class="canon-kr">친구 · Kwak Kyung-taek</div><div class="canon-desc">Ask any Korean over 30 and they'll name this as a favorite. A raw Busan-set gangster drama about four childhood friends torn apart by class and crime. Hugely influential domestically — the film that made Korean men cry in cinemas. Not well known internationally.</div><a href="https://en.wikipedia.org/wiki/Friend_(2001_film)" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">2016</div><div class="canon-tags"><span class="canon-tag">Horror</span><span class="canon-tag">Masterpiece</span></div></div>
+          <div class="canon-right"><div class="canon-title">The Wailing</div><div class="canon-kr">곡성 · Na Hong-jin</div><div class="canon-desc">A mysterious stranger arrives in a rural village and people start dying. Possibly the most terrifying Korean film ever made — a slow-burn folk horror that descends into absolute chaos. Na Hong-jin's masterwork. Much darker than anything you've seen from Korean cinema.</div><a href="https://en.wikipedia.org/wiki/The_Wailing_(film)" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">2008</div><div class="canon-tags"><span class="canon-tag">Thriller</span><span class="canon-tag">Debut</span></div></div>
+          <div class="canon-right"><div class="canon-title">The Chaser</div><div class="canon-kr">추격자 · Na Hong-jin</div><div class="canon-desc">A pimp realizes his missing girls have been murdered, and the killer walks free due to police incompetence and legal red tape. Na Hong-jin's stunning debut — a visceral real-time thriller about systemic failure. Based on a true serial killer case that shook Korea.</div><a href="https://en.wikipedia.org/wiki/The_Chaser_(2008_film)" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">2005</div><div class="canon-tags"><span class="canon-tag">Noir</span><span class="canon-tag">Cult</span></div></div>
+          <div class="canon-right"><div class="canon-title">A Bittersweet Life</div><div class="canon-kr">달콤한 인생 · Kim Jee-woon</div><div class="canon-desc">Lee Byung-hun as a mob enforcer who falls for his boss's girlfriend and refuses to kill her. Cold, poetic, relentless — the definitive Korean noir. Domestically, this is arguably Lee Byung-hun's most famous role and a cult classic.</div><a href="https://en.wikipedia.org/wiki/A_Bittersweet_Life" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">2010</div><div class="canon-tags"><span class="canon-tag">Poetry</span><span class="canon-tag">Cannes</span></div></div>
+          <div class="canon-right"><div class="canon-title">Poetry</div><div class="canon-kr">시 · Lee Chang-dong</div><div class="canon-desc">An elderly woman with early Alzheimer's takes a poetry class while her grandson is implicated in a crime. Lee Chang-dong's tender, devastating meditation on beauty, aging, and moral responsibility. Won Best Screenplay at Cannes. Quiet, humane filmmaking at its peak.</div><a href="https://en.wikipedia.org/wiki/Poetry_(2010_film)" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">1960</div><div class="canon-tags"><span class="canon-tag">Foundational</span></div></div>
+          <div class="canon-right"><div class="canon-title">The Housemaid</div><div class="canon-kr">하녀 · Kim Ki-young</div><div class="canon-desc">A domestic helper destroys a middle-class family from within. Considered the greatest Korean film of the 20th century — a psychological horror about class and desire that directly inspired Bong Joon-ho's Parasite six decades later. The root of Korean cinema's obsession with class.</div><a href="https://en.wikipedia.org/wiki/The_Housemaid_(1960_film)" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">2018</div><div class="canon-tags"><span class="canon-tag">Slow Burn</span></div></div>
+          <div class="canon-right"><div class="canon-title">Burning</div><div class="canon-kr">버닝 · Lee Chang-dong</div><div class="canon-desc">Steven Yeun plays a mysterious rich man who confesses a disturbing hobby. Based on Murakami's short story, this hypnotic psychological thriller was Korea's most acclaimed film at Cannes before Parasite. A masterclass in ambiguity and dread that rewards repeat viewings.</div><a href="https://en.wikipedia.org/wiki/Burning_(2018_film)" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">2004</div><div class="canon-tags"><span class="canon-tag">War</span><span class="canon-tag">National</span></div></div>
+          <div class="canon-right"><div class="canon-title">Taegukgi</div><div class="canon-kr">태극기 휘날리며 · Kang Je-gyu</div><div class="canon-desc">Two brothers conscripted to opposite sides of the Korean War. The first Korean film to cross the 10-million-admissions mark — a quarter of the population. Korea's Saving Private Ryan: emotionally devastating and essentially mandatory viewing for understanding the national psyche.</div><a href="https://en.wikipedia.org/wiki/Tae_Guk_Gi:_The_Brotherhood_of_War" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+      </div>
+
+      <div class="canon-items" id="canon-tv">
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">2015</div><div class="canon-tags"><span class="canon-tag">National</span><span class="canon-tag">Essential</span></div></div>
+          <div class="canon-right"><div class="canon-title">Reply 1988</div><div class="canon-kr">응답하라 1988</div><div class="canon-desc">Five families in a Seoul neighborhood in 1988. Dubbed Korea's "National Drama" — the highest-rated cable drama at the time. No revenge plots, no twists, just devastating emotional honesty about friendship, family, and a Korea that no longer exists. Sparked the "newtro" retro wave. Start here.</div><a href="https://en.wikipedia.org/wiki/Reply_1988" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">2016</div><div class="canon-tags"><span class="canon-tag">Thriller</span><span class="canon-tag">Time-Travel</span></div></div>
+          <div class="canon-right"><div class="canon-title">Signal</div><div class="canon-kr">시그널</div><div class="canon-desc">A walkie-talkie connects a present-day profiler with a detective in the 1980s. Based on real unsolved Korean crimes (including the Hwaseong murders). Widely considered the best Korean crime drama ever — a genre-defining thriller that's smarter than most films. Not widely known abroad.</div><a href="https://en.wikipedia.org/wiki/Signal_(South_Korean_TV_series)" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">2018</div><div class="canon-tags"><span class="canon-tag">Social</span><span class="canon-tag">Ratings Record</span></div></div>
+          <div class="canon-right"><div class="canon-title">Sky Castle</div><div class="canon-kr">SKY 캐슬</div><div class="canon-desc">Wealthy parents in an elite gated community destroy their children through academic obsession. A savage satire of Korea's "education hell" — the suneung exam system, private tutoring cartels, and the lengths parents go to. Broke cable ratings records. Uncomfortably close to reality.</div><a href="https://en.wikipedia.org/wiki/SKY_Castle" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">2018</div><div class="canon-tags"><span class="canon-tag">Emotional</span><span class="canon-tag">Underdog</span></div></div>
+          <div class="canon-right"><div class="canon-title">My Mister</div><div class="canon-kr">나의 아저씨</div><div class="canon-desc">A broken middle-aged man and a hardened young woman form an unlikely connection. No romance — just raw empathy. Considered by many Korean viewers as the most emotionally authentic drama ever made. Lee Sun-kyun's finest work, now impossibly poignant after his death in 2023.</div><a href="https://en.wikipedia.org/wiki/My_Mister" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">2003</div><div class="canon-tags"><span class="canon-tag">Historical</span><span class="canon-tag">Hallyu Origin</span></div></div>
+          <div class="canon-right"><div class="canon-title">Jewel in the Palace</div><div class="canon-kr">대장금</div><div class="canon-desc">An orphaned girl becomes the King's personal physician through traditional cuisine and medicine. Sold to 150 countries and sparked the first wave of Hallyu across Asia. Single-handedly made Korean food and traditional culture globally famous. A theme park was built for it.</div><a href="https://en.wikipedia.org/wiki/Dae_Jang_Geum" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">1995</div><div class="canon-tags"><span class="canon-tag">Milestone</span></div></div>
+          <div class="canon-right"><div class="canon-title">Sandglass</div><div class="canon-kr">모래시계</div><div class="canon-desc">Three lives shaped by Korea's turbulent political history from the 1970s through the Gwangju Uprising to democratization. Changed how Korean dramas were made — introduced cinematic techniques and real-location shooting. Streets emptied when it aired. The drama that proved TV could be art.</div><a href="https://en.wikipedia.org/wiki/Sandglass_(TV_series)" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">2025</div><div class="canon-tags"><span class="canon-tag">Netflix</span><span class="canon-tag">Jeju</span></div></div>
+          <div class="canon-right"><div class="canon-title">When Life Gives You Tangerines</div><div class="canon-kr">귤이 들어오면</div><div class="canon-desc">A Jeju Island woman's life from the 1960s to the 1990s. The latest "national drama" phenomenon — sheds light on the untold sacrifices of Korean mothers and daughters seeking change. Resonates deeply domestically for its portrayal of rural Korea and social history.</div><a href="https://en.wikipedia.org/wiki/When_Life_Gives_You_Tangerines" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+      </div>
+
+      <div class="canon-items" id="canon-music">
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">1992</div><div class="canon-tags"><span class="canon-tag">Revolution</span></div></div>
+          <div class="canon-right"><div class="canon-title">Seo Taiji and Boys</div><div class="canon-kr">서태지와 아이들 · "Nan Arayo"</div><div class="canon-desc">Year Zero for K-pop. Their debut "I Know" was ranked last by TV talent show judges — then went #1 for 17 weeks and sold 1.5M copies. Introduced hip-hop, rap, and rock to Korean pop, shattering the trot/ballad monopoly. Yang Hyun-suk (one of the Boys) went on to found YG Entertainment. Everything starts here.</div><a href="https://en.wikipedia.org/wiki/Seo_Taiji_and_Boys" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">1970s</div><div class="canon-tags"><span class="canon-tag">Godfather</span></div></div>
+          <div class="canon-right"><div class="canon-title">Shin Joong-hyun</div><div class="canon-kr">신중현 · "Beautiful Rivers and Mountains"</div><div class="canon-desc">The "Godfather of Korean Rock." Performed on US military bases in the 60s, fused psychedelic rock with Korean folk traditions. Wrote a protest song against President Park — police confiscated his guitars and cut his hair. Imprisoned in 1975 on marijuana charges. The original Korean rebel musician.</div><a href="https://en.wikipedia.org/wiki/Shin_Joong-hyun" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">1980s</div><div class="canon-tags"><span class="canon-tag">Legend</span></div></div>
+          <div class="canon-right"><div class="canon-title">Cho Yong-pil</div><div class="canon-kr">조용필 · "Please Return to Busan Port"</div><div class="canon-desc">Korea's undisputed "King of Pop" — decades before BTS. Crossed trot, rock, and ballad effortlessly. Sang "Seoul Seoul Seoul" at the 1988 Olympics. Every Korean alive knows his music. His 2013 comeback "Bounce" topped charts against K-pop idols 40 years his junior. Ageless, untouchable legend.</div><a href="https://en.wikipedia.org/wiki/Cho_Yong-pil" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">1990s–</div><div class="canon-tags"><span class="canon-tag">Hip-Hop</span><span class="canon-tag">Poetic</span></div></div>
+          <div class="canon-right"><div class="canon-title">Epik High</div><div class="canon-kr">에픽하이 · Tablo</div><div class="canon-desc">The group that legitimized Korean hip-hop as art. Led by Tablo (Stanford-educated, published novelist), their music weaves literary references with emotional depth. "Fly" and "Fan" are generational anthems. Influenced every Korean rapper who followed. Still active, still essential.</div><a href="https://en.wikipedia.org/wiki/Epik_High" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">1970–80s</div><div class="canon-tags"><span class="canon-tag">Protest</span><span class="canon-tag">Democracy</span></div></div>
+          <div class="canon-right"><div class="canon-title">Minjung Gayo</div><div class="canon-kr">민중가요 · Kim Min-ki</div><div class="canon-desc">During military dictatorships, protest songs became the voice of the democracy movement. Kim Min-ki was banned from performing. "Morning Dew" (아침이슬) became the anthem of Gwangju and democratization. These songs are still sung at protests today. Not nostalgia — living history.</div><a href="https://en.wikipedia.org/wiki/Minjung" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">2010s–</div><div class="canon-tags"><span class="canon-tag">Indie</span><span class="canon-tag">Hongdae</span></div></div>
+          <div class="canon-right"><div class="canon-title">Hongdae Indie Scene</div><div class="canon-kr">홍대 인디 · Jannabi, SE SO NEON, Silica Gel</div><div class="canon-desc">Seoul's Hongdae district is the beating heart of Korean indie music. Jannabi channel 70s folk-rock, SE SO NEON's Hwang So-yoon is a guitar icon, Silica Gel won Korean Music Awards twice. Over 40 underground clubs in one neighborhood. If you want to see Korean music beyond K-pop, go to Hongdae.</div><a href="https://en.wikipedia.org/wiki/Korean_indie" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">Genre</div><div class="canon-tags"><span class="canon-tag">Tradition</span></div></div>
+          <div class="canon-right"><div class="canon-title">Trot</div><div class="canon-kr">트로트 · Korea's oldest pop genre</div><div class="canon-desc">Korea's original popular music — repetitive rhythms derived from the foxtrot, huge since the 1950s. Your grandparents' music, but with a massive recent revival through TV competition shows. Lim Young-woong is the biggest trot star today and fills stadiums. Essential for understanding Korean generational culture.</div><a href="https://en.wikipedia.org/wiki/Trot_(music)" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">Genre</div><div class="canon-tags"><span class="canon-tag">Ballad</span></div></div>
+          <div class="canon-right"><div class="canon-title">Korean Ballad</div><div class="canon-kr">발라드 · Park Hyo-shin, Im Jae-beom</div><div class="canon-desc">Ballad isn't a style in Korea — it's its own genre. Singers like Park Hyo-shin and Im Jae-beom have entire careers of love songs and heartbreak. This is what Koreans actually listen to most. K-drama soundtracks are almost entirely ballads. If you're in a taxi in Seoul, this is what's playing.</div><a href="https://en.wikipedia.org/wiki/Korean_ballad" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+      </div>
+
+      <div class="canon-items" id="canon-lit">
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">2024</div><div class="canon-tags"><span class="canon-tag">Nobel</span><span class="canon-tag">Essential</span></div></div>
+          <div class="canon-right"><div class="canon-title">Han Kang</div><div class="canon-kr">한강 · Nobel Prize in Literature</div><div class="canon-desc">First Korean and first Asian woman to win the Nobel Prize in Literature, recognized for "intense poetic prose that confronts historical traumas." Start with The Vegetarian or Human Acts.</div><a href="https://en.wikipedia.org/wiki/Han_Kang" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">2007</div><div class="canon-tags"><span class="canon-tag">Booker</span></div></div>
+          <div class="canon-right"><div class="canon-title">The Vegetarian</div><div class="canon-kr">채식주의자 · Han Kang</div><div class="canon-desc">A woman's refusal to eat meat unravels her world. Booker Prize winner — surreal, disturbing, and the book that introduced Korean literature to the global mainstream.</div><a href="https://en.wikipedia.org/wiki/The_Vegetarian" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">2014</div><div class="canon-tags"><span class="canon-tag">Gwangju</span><span class="canon-tag">Essential</span></div></div>
+          <div class="canon-right"><div class="canon-title">Human Acts</div><div class="canon-kr">소년이 온다 · Han Kang</div><div class="canon-desc">A devastating account of the 1980 Gwangju Uprising through multiple voices. Perhaps the most important Korean novel about state violence and the democracy movement. Read before visiting.</div><a href="https://en.wikipedia.org/wiki/Human_Acts_(novel)" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">2016</div><div class="canon-tags"><span class="canon-tag">Feminism</span></div></div>
+          <div class="canon-right"><div class="canon-title">Kim Ji-young, Born 1982</div><div class="canon-kr">82년생 김지영 · Cho Nam-joo</div><div class="canon-desc">A feminist novel that became a cultural lightning rod — sold millions, was adapted into a film, and split Korean society. Women read it on the subway in defiance; men review-bombed it online. Encapsulates Korea's intense gender debate.</div><a href="https://en.wikipedia.org/wiki/Kim_Ji-young,_Born_1982" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">1996</div><div class="canon-tags"><span class="canon-tag">Modern Classic</span></div></div>
+          <div class="canon-right"><div class="canon-title">The Dwarf</div><div class="canon-kr">난장이가 쏘아올린 작은 공 · Cho Se-hui</div><div class="canon-desc">A factory worker family crushed by rapid industrialization. Required reading in Korean schools — possibly the most-read Korean novel of the 20th century. A searing indictment of the human cost of the "Miracle on the Han River" that remains painfully relevant.</div><a href="https://en.wikipedia.org/wiki/A_Dwarf_Launches_a_Little_Ball" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">2022</div><div class="canon-tags"><span class="canon-tag">Diaspora</span></div></div>
+          <div class="canon-right"><div class="canon-title">Pachinko</div><div class="canon-kr">파친코 · Min Jin Lee</div><div class="canon-desc">Four generations of a Korean family in Japan, spanning the 20th century. A sweeping saga of identity, discrimination, and resilience. Now an Apple TV+ series. Essential for understanding zainichi Koreans and the colonial legacy that still shapes Korean identity.</div><a href="https://en.wikipedia.org/wiki/Pachinko_(novel)" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+      </div>
+
+      <div class="canon-items" id="canon-food">
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">Stew</div><div class="canon-tags"><span class="canon-tag">Daily Life</span></div></div>
+          <div class="canon-right"><div class="canon-title">Kimchi Jjigae & Doenjang Jjigae</div><div class="canon-kr">김치찌개 · 된장찌개</div><div class="canon-desc">The two stews Koreans actually eat constantly. Kimchi jjigae (fermented kimchi stew with pork) and doenjang jjigae (fermented soybean paste stew with tofu). Served bubbling in stone pots. These are Korea's real comfort food — what grandma makes, not what restaurants market to tourists.</div><a href="https://en.wikipedia.org/wiki/Kimchi-jjigae" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">Noodles</div><div class="canon-tags"><span class="canon-tag">Korean-Chinese</span></div></div>
+          <div class="canon-right"><div class="canon-title">Jajangmyeon</div><div class="canon-kr">자장면</div><div class="canon-desc">Black bean sauce noodles — Korean-Chinese comfort food that every Korean has eaten hundreds of times. The default delivery food. Eaten on "Black Day" (April 14) by singles mourning Valentine's. A surprisingly important cultural touchstone that no foreigner would think to order first.</div><a href="https://en.wikipedia.org/wiki/Jajangmyeon" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">Summer</div><div class="canon-tags"><span class="canon-tag">Cold Noodle</span></div></div>
+          <div class="canon-right"><div class="canon-title">Naengmyeon</div><div class="canon-kr">냉면</div><div class="canon-desc">Buckwheat noodles in icy broth with mustard and vinegar. Originally a North Korean dish, now a Seoul obsession in summer. Mul-naengmyeon (broth) or bibim-naengmyeon (spicy). The broth is made from dongchimi (water radish kimchi). An acquired taste that becomes an addiction. Pyongyang-style is legendary.</div><a href="https://en.wikipedia.org/wiki/Naengmyeon" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">Army</div><div class="canon-tags"><span class="canon-tag">Post-War</span></div></div>
+          <div class="canon-right"><div class="canon-title">Budae Jjigae</div><div class="canon-kr">부대찌개 · "Army Stew"</div><div class="canon-desc">Spam, sausage, instant ramen, kimchi, and gochujang all boiled together. Born from post-Korean War poverty when US military base scraps were the only protein available. Now a beloved communal dish. Itaewon and Uijeongbu are famous for it. Korea's history in a single bubbling pot.</div><a href="https://en.wikipedia.org/wiki/Budae-jjigae" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">Rainy Day</div><div class="canon-tags"><span class="canon-tag">Ritual</span></div></div>
+          <div class="canon-right"><div class="canon-title">Pajeon + Makgeolli</div><div class="canon-kr">파전 + 막걸리</div><div class="canon-desc">Green onion pancakes with unfiltered rice wine. Koreans eat this specifically when it rains — some say because the sizzling sounds like rainfall, others because carbs boost serotonin. Whatever the reason, it's a cultural reflex. If it's raining in Seoul, you eat pajeon with makgeolli. Non-negotiable.</div><a href="https://en.wikipedia.org/wiki/Pajeon" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">Ritual</div><div class="canon-tags"><span class="canon-tag">Social</span></div></div>
+          <div class="canon-right"><div class="canon-title">Chimaek</div><div class="canon-kr">치맥 · Chicken + Maekju (Beer)</div><div class="canon-desc">Korean fried chicken with beer — the definitive after-work social ritual. KFC doesn't stand a chance against Korea's thousands of fried chicken joints with their sweet-spicy-garlic glazes. Eaten outdoors by the Han River on warm nights. Order yangnyeom (sweet chili) and dakgangjeong (soy garlic).</div><a href="https://en.wikipedia.org/wiki/Chimaek" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">Dessert</div><div class="canon-tags"><span class="canon-tag">Summer</span></div></div>
+          <div class="canon-right"><div class="canon-title">Bingsu</div><div class="canon-kr">빙수</div><div class="canon-desc">Shaved milk ice piled with red beans, mochi, fruit, condensed milk. Looks like a sundae, tastes nothing like one. Patbingsu (red bean) is the classic. Every café in Korea has its own version in summer. Not on most foreigner radar, but an absolute Korean obsession from June to September.</div><a href="https://en.wikipedia.org/wiki/Patbingsu" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">Market</div><div class="canon-tags"><span class="canon-tag">Gwangjang</span></div></div>
+          <div class="canon-right"><div class="canon-title">Bindaetteok & Sundae</div><div class="canon-kr">빈대떡 · 순대</div><div class="canon-desc">Mung bean pancakes and Korean blood sausage — the iconic Gwangjang Market pairing. Bindaetteok is thick and crispy, best with soy-onion dip and makgeolli. Sundae is pig intestine stuffed with noodles and barley. Looks intimidating, tastes incredible. The real street food experience.</div><a href="https://en.wikipedia.org/wiki/Bindaetteok" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+      </div>
+
+      <div class="canon-items" id="canon-hist">
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">Concept</div><div class="canon-tags"><span class="canon-tag">Essential</span></div></div>
+          <div class="canon-right"><div class="canon-title">Han (한)</div><div class="canon-kr">한 · Untranslatable collective sorrow</div><div class="canon-desc">Korea's defining cultural emotion — a complex mix of grief, resentment, longing, and resilience born from centuries of invasion, colonization, and division. Not depression, not anger — something uniquely Korean. Han runs through every film, song, and relationship on this list. Once you understand han, you understand Korea.</div><a href="https://en.wikipedia.org/wiki/Han_(cultural)" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">Concept</div><div class="canon-tags"><span class="canon-tag">Social</span></div></div>
+          <div class="canon-right"><div class="canon-title">Nunchi & Jeong</div><div class="canon-kr">눈치 · 정</div><div class="canon-desc">Nunchi is the art of reading the room — gauging mood, power dynamics, and unspoken cues. Jeong is deep emotional bonding that develops through shared experience. Together they govern Korean social life. A server refilling your glass without being asked? That's nunchi. Your landlady giving you food? That's jeong.</div><a href="https://en.wikipedia.org/wiki/Nunchi" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">Culture</div><div class="canon-tags"><span class="canon-tag">Pace</span></div></div>
+          <div class="canon-right"><div class="canon-title">Ppalli-Ppalli</div><div class="canon-kr">빨리빨리 · "Hurry Hurry"</div><div class="canon-desc">Korea's signature speed culture. Same-day delivery, world's fastest internet, 2-minute subway headways. Born from post-war urgency to rebuild. Ironically, 19th-century foreigners complained Koreans were too slow. The shift explains everything: the economic miracle, the stress, the innovation, the burnout.</div><a href="https://en.wikipedia.org/wiki/Ppalli-ppalli" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">1997</div><div class="canon-tags"><span class="canon-tag">Trauma</span></div></div>
+          <div class="canon-right"><div class="canon-title">The IMF Crisis</div><div class="canon-kr">IMF 위기 · "The IMF"</div><div class="canon-desc">Korea's financial collapse — Koreans just call it "The IMF." The government went to citizens for help and millions donated personal gold. Chaebols collapsed, lifetime employment ended, inequality exploded. Shaped an entire generation's relationship with money, security, and trust in institutions. Still referenced daily.</div><a href="https://en.wikipedia.org/wiki/1997_Asian_financial_crisis" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">2014</div><div class="canon-tags"><span class="canon-tag">Grief</span><span class="canon-tag">Defining</span></div></div>
+          <div class="canon-right"><div class="canon-title">Sewol Ferry Disaster</div><div class="canon-kr">세월호 참사</div><div class="canon-desc">304 people died — mostly 16-year-old students — when a ferry sank as the captain fled and the government failed to rescue them. Korea's national trauma. The entertainment industry shut down. Yellow ribbons became a symbol of grief and accountability. Directly fueled the Candlelight protests that impeached the president.</div><a href="https://en.wikipedia.org/wiki/Sinking_of_MV_Sewol" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">1980</div><div class="canon-tags"><span class="canon-tag">Democracy</span></div></div>
+          <div class="canon-right"><div class="canon-title">Gwangju Uprising</div><div class="canon-kr">광주 민주화 운동</div><div class="canon-desc">Citizens rose against military dictatorship, were brutally suppressed. The defining moment of Korea's democracy movement. Still deeply emotional — mention Gwangju to an older Korean and they may tear up. Han Kang's "Human Acts" is the essential literary account.</div><a href="https://en.wikipedia.org/wiki/Gwangju_Uprising" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">2016–17</div><div class="canon-tags"><span class="canon-tag">Peaceful</span></div></div>
+          <div class="canon-right"><div class="canon-title">Candlelight Revolution</div><div class="canon-kr">촛불 혁명</div><div class="canon-desc">Millions peacefully impeached President Park Geun-hye over corruption and the Sewol cover-up. The largest peaceful protests in modern history. Koreans will tell you this was their proudest moment — proof that their democracy, fought for with blood at Gwangju, actually works.</div><a href="https://en.wikipedia.org/wiki/2016%E2%80%9317_South_Korean_protests" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+        <div class="canon-item">
+          <div class="canon-left"><div class="canon-yr">Culture</div><div class="canon-tags"><span class="canon-tag">Education</span></div></div>
+          <div class="canon-right"><div class="canon-title">Suneung</div><div class="canon-kr">수능 · College Scholastic Ability Test</div><div class="canon-desc">The single exam that determines every Korean's future — taken on one day in November. Flights are rerouted, stock markets delay opening, police escort late students. Years of hagwon (cram school) pressure culminate in 8 hours. Suicide rates spike around it. The system Sky Castle satirizes. Impossible to overstate its social weight.</div><a href="https://en.wikipedia.org/wiki/College_Scholastic_Ability_Test" target="_blank" class="canon-link">→ Wikipedia</a></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- DUAL CLOCK -->
+  <div class="clock-bar" style="margin-top:32px;margin-bottom:0;">
+    <div class="clock-item">
+      <div class="clock-city">Stockholm</div>
+      <div class="clock-time" id="clockSE">--:--</div>
+      <div class="clock-date" id="dateSE"></div>
+    </div>
+    <div class="clock-item">
+      <div class="clock-city">Seoul / Pohang</div>
+      <div class="clock-time" id="clockKR">--:--</div>
+      <div class="clock-date" id="dateKR"></div>
+    </div>
+  </div>
+
+  <footer class="ftr">
+    <div class="ftr-kr">좋은 여행 되세요</div>
+    <div class="ftr-txt">Have a wonderful trip, Samuel</div>
+    <div class="orn"><div class="orn-l"></div><div class="orn-d"></div><div class="orn-l"></div></div>
+  </footer>
+</div>
+
+<script>
+// === TOAST ===
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg||'Copied!';
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),1800);
+}
+
+// === COPY ===
+function cp(text){
+  navigator.clipboard.writeText(text).then(()=>toast('Copied: '+text.substring(0,30)+(text.length>30?'…':'')));
+}
+
+// === CLOCK ===
+function updateClocks(){
+  const now=new Date();
+  const opts={hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false};
+  const dOpts={weekday:'short',month:'short',day:'numeric'};
+
+  const se=now.toLocaleString('en-GB',{...opts,timeZone:'Europe/Stockholm'});
+  const kr=now.toLocaleString('en-GB',{...opts,timeZone:'Asia/Seoul'});
+
+  document.getElementById('clockSE').textContent=se;
+  document.getElementById('clockKR').textContent=kr;
+
+  const seD=now.toLocaleString('en-GB',{...dOpts,timeZone:'Europe/Stockholm'});
+  const krD=now.toLocaleString('en-GB',{...dOpts,timeZone:'Asia/Seoul'});
+  document.getElementById('dateSE').textContent=seD;
+  document.getElementById('dateKR').textContent=krD;
+}
+updateClocks();setInterval(updateClocks,1000);
+
+// === COUNTDOWN ===
+const DEP=new Date('2026-03-03T06:00:00+01:00');
+function uc(){
+  const d=DEP-new Date();
+  if(d<=0){['days','hours','mins','secs'].forEach(i=>document.getElementById(i).textContent='0');return;}
+  document.getElementById('days').textContent=Math.floor(d/864e5);
+  document.getElementById('hours').textContent=String(Math.floor(d%864e5/36e5)).padStart(2,'0');
+  document.getElementById('mins').textContent=String(Math.floor(d%36e5/6e4)).padStart(2,'0');
+  document.getElementById('secs').textContent=String(Math.floor(d%6e4/1e3)).padStart(2,'0');
+}
+uc();setInterval(uc,1000);
+
+// === FLIGHT TABS ===
+function showFlight(id,btn){
+  document.querySelectorAll('.fl-content').forEach(c=>c.classList.remove('active'));
+  document.querySelectorAll('.fl-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('fl-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// === CANON TABS ===
+function showCanon(id,btn){
+  document.querySelectorAll('.canon-items').forEach(c=>c.classList.remove('active'));
+  document.querySelectorAll('.canon-cat').forEach(t=>t.classList.remove('active'));
+  document.getElementById('canon-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// === CURRENCY ===
+const RATE=160;
+function convertSEK(){
+  const v=parseFloat(document.getElementById('sekInput').value);
+  document.getElementById('krwInput').value=v?Math.round(v*RATE):'';
+}
+function convertKRW(){
+  const v=parseFloat(document.getElementById('krwInput').value);
+  document.getElementById('sekInput').value=v?Math.round(v/RATE*100)/100:'';
+}
+function swapCur(){
+  const s=document.getElementById('sekInput').value;
+  const k=document.getElementById('krwInput').value;
+  document.getElementById('sekInput').value=k;
+  document.getElementById('krwInput').value=s;
+}
+
+// === WORDS ===
+const W=[
+  {h:'안녕하세요',r:'annyeonghaseyo',e:'Hello',x:'"안녕하세요! 만나서 반갑습니다"'},
+  {h:'감사합니다',r:'gamsahamnida',e:'Thank you',x:'"도와주셔서 감사합니다"'},
+  {h:'맛있다',r:'masitda',e:'Delicious',x:'"이 음식 정말 맛있어요!"'},
+  {h:'물',r:'mul',e:'Water',x:'"물 한 잔 주세요"'},
+  {h:'네 / 아니요',r:'ne / aniyo',e:'Yes / No',x:'"네, 맞아요" · "아니요, 괜찮아요"'},
+  {h:'주세요',r:'juseyo',e:'Please give me',x:'"메뉴 주세요"'},
+  {h:'얼마',r:'eolma',e:'How much',x:'"이거 얼마예요?"'},
+  {h:'맥주',r:'maekju',e:'Beer',x:'"맥주 한 잔 주세요"'},
+  {h:'밥',r:'bap',e:'Rice / Meal',x:'"밥 먹었어요?"'},
+  {h:'커피',r:'keopi',e:'Coffee',x:'"아이스 아메리카노 주세요"'},
+  {h:'잠깐만요',r:'jamkkanmanyo',e:'Just a moment',x:'"잠깐만요, 곧 갈게요"'},
+  {h:'택시',r:'taeksi',e:'Taxi',x:'"택시 타고 가요"'},
+  {h:'지하철',r:'jihacheol',e:'Subway',x:'"지하철역이 어디예요?"'},
+  {h:'좋아요',r:'joayo',e:'Good / I like it',x:'"여기 좋아요!"'},
+  {h:'계산',r:'gyesan',e:'Bill / Check',x:'"계산해 주세요"'},
+  {h:'화이팅',r:'hwaiting',e:'You got this!',x:'"화이팅!"'},
+  {h:'사랑',r:'sarang',e:'Love',x:'"사랑해요"'},
+  {h:'친구',r:'chingu',e:'Friend',x:'"제 친구예요"'},
+  {h:'여기요',r:'yeogiyo',e:'Over here! / Excuse me',x:'Used in restaurants to call staff'},
+  {h:'괜찮아요',r:'gwaenchanhayo',e:"It's okay / I'm fine",x:'"괜찮아요, 걱정 마세요"'},
+  {h:'어디',r:'eodi',e:'Where',x:'"역이 어디예요?"'},
+];
+const doy=Math.floor((new Date()-new Date(new Date().getFullYear(),0,0))/864e5);
+let ci=doy%W.length;
+function rw(){const w=W[ci];document.getElementById('wH').textContent=w.h;document.getElementById('wR').textContent=w.r;document.getElementById('wE').textContent=w.e;document.getElementById('wX').textContent=w.x;}
+function nw(){ci=(ci+1)%W.length;rw();}
+function pw(){ci=(ci-1+W.length)%W.length;rw();}
+rw();
+
+// === CHECKLIST ===
+const CI=[
+  {cat:'Documents',items:['Passport (valid 6+ months)','K-ETA or visa waiver check','Travel insurance','Print/save hotel confirmations']},
+  {cat:'Tech',items:['eSIM or SIM card ordered','Download Kakao T','Download Naver Maps','Power bank & USB-C cables']},
+  {cat:'Packing',items:['Warm layers & light jacket','Comfortable walking shoes']},
+  {cat:'Money',items:['Notify bank of travel','Get T-money card at ICN']},
+];
+const allItems=[];CI.forEach(c=>c.items.forEach(i=>allItems.push({cat:c.cat,item:i})));
+const SK='korea-v2',el=document.getElementById('chk');
+function gc(){try{return JSON.parse(localStorage.getItem(SK))||[];}catch{return[];}}
+function sc(v){localStorage.setItem(SK,JSON.stringify(v));}
+function rc(){
+  const c=gc();el.innerHTML='';let lastCat='';
+  allItems.forEach((obj,i)=>{
+    if(obj.cat!==lastCat){
+      const catDiv=document.createElement('div');catDiv.className='chk-cat';catDiv.textContent=obj.cat;el.appendChild(catDiv);lastCat=obj.cat;
+    }
+    const li=document.createElement('li');
+    li.className=c.includes(i)?'ck':'';
+    li.innerHTML='<span class="cb">'+(c.includes(i)?'✓':'')+'</span>'+obj.item;
+    li.onclick=()=>{const x=gc();if(x.includes(i))sc(x.filter(v=>v!==i));else{x.push(i);sc(x);}rc();up();};
+    el.appendChild(li);
+  });
+}
+function up(){
+  const c=gc(),p=Math.round(c.length/allItems.length*100);
+  document.getElementById('pPct').textContent=p+'%';
+  document.getElementById('pBar').style.width=p+'%';
+  document.getElementById('pSub').textContent=c.length+' of '+allItems.length+' complete';
+}
+rc();up();
+
+// === WEATHER (fetch from wttr.in) ===
+async function fetchWx(){
+  try{
+    const [s,p]=await Promise.all([
+      fetch('https://wttr.in/Seoul?format=j1').then(r=>r.json()).catch(()=>null),
+      fetch('https://wttr.in/Pohang?format=j1').then(r=>r.json()).catch(()=>null)
+    ]);
+    if(s&&s.current_condition){
+      const c=s.current_condition[0];
+      document.getElementById('wxTempSeoul').textContent=c.temp_C+'°C';
+      document.getElementById('wxDescSeoul').textContent=c.weatherDesc[0].value+' · Feels '+c.FeelsLikeC+'°C';
+      document.getElementById('wxDetSeoul').textContent='Humidity: '+c.humidity+'% · Wind: '+c.windspeedKmph+' km/h';
+      document.getElementById('wxIconSeoul').textContent=getWxIcon(c.weatherCode);
+    }
+    if(p&&p.current_condition){
+      const c=p.current_condition[0];
+      document.getElementById('wxTempPohang').textContent=c.temp_C+'°C';
+      document.getElementById('wxDescPohang').textContent=c.weatherDesc[0].value+' · Feels '+c.FeelsLikeC+'°C';
+      document.getElementById('wxDetPohang').textContent='Humidity: '+c.humidity+'% · Wind: '+c.windspeedKmph+' km/h';
+      document.getElementById('wxIconPohang').textContent=getWxIcon(c.weatherCode);
+    }
+  }catch(e){console.log('Weather fetch failed',e);}
+}
+function getWxIcon(code){
+  const c=parseInt(code);
+  if(c===113)return'☀️';if(c===116)return'⛅';if(c===119||c===122)return'☁️';
+  if(c>=176&&c<=200)return'🌧️';if(c>=227&&c<=230)return'🌨️';if(c>=248&&c<=260)return'🌫️';
+  if(c>=263&&c<=302)return'🌦️';if(c>=308&&c<=359)return'🌧️';if(c>=362&&c<=395)return'🌨️';
+  return'🌤️';
+}
+fetchWx();
+</script>
+</body>
+</html>
